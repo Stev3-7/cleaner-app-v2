@@ -4,19 +4,19 @@ from openai import OpenAI
 import io
 import time
 
-# Ρύθμιση σελίδας
-st.set_page_config(page_title="AI Data Cleaner", layout="wide")
+st.set_page_config(page_title="Ultimate AI Cleaner", layout="wide")
 
 def clean_data_with_ai(dirty_text, client):
     if not dirty_text or pd.isna(dirty_text) or str(dirty_text).strip() == "":
         return dirty_text
     
+    # Εξελιγμένο prompt για Ονόματα, Emails και Τηλέφωνα
     prompt = (
-        f"Είσαι ένας ειδικός στην εκκαθάριση δεδομένων. Διορθώσε την τιμή: '{dirty_text}'.\n\n"
-        f"ΚΑΝΟΝΕΣ ΑΝΑΛΟΓΑ ΜΕ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ:\n"
-        f"1. ΑΝ ΕΙΝΑΙ ΟΝΟΜΑ: Διόρθωσε ορθογραφία, βάλε τόνους και κάνε το Proper Case (π.χ. παπαδοπουλος -> Παπαδόπουλος).\n"
-        f"2. ΑΝ ΕΙΝΑΙ EMAIL: Μετάτρεψε όλα τα γράμματα σε μικρά και αφαίρεσε τυχόν κενά.\n"
-        f"3. ΑΝ ΕΙΝΑΙ ΤΗΛΕΦΩΝΟ: Κράτα μόνο τους αριθμούς. Αν ξεκινάει από 69 ή 2, βεβαιώσου ότι έχει 10 ψηφία.\n"
+        f"Είσαι ειδικός στην εκκαθάριση δεδομένων. Διορθώσε την τιμή: '{dirty_text}'.\n\n"
+        f"ΚΑΝΟΝΕΣ:\n"
+        f"1. ΑΝ ΕΙΝΑΙ ΟΝΟΜΑ: Βάλε τόνους, κάνε Proper Case και διόρθωσε ορθογραφία.\n"
+        f"2. ΑΝ ΕΙΝΑΙ EMAIL: Μετάτρεψε σε μικρά, αφαίρεσε κενά και τελείες στο τέλος.\n"
+        f"3. ΑΝ ΕΙΝΑΙ ΤΗΛΕΦΩΝΟ: Κράτα μόνο τα 10 ψηφία (αφαίρεσε +30, παύλες, κενά).\n"
         f"Απάντησε ΜΟΝΟ με τη διορθωμένη τιμή."
     )
     
@@ -30,50 +30,38 @@ def clean_data_with_ai(dirty_text, client):
     except Exception as e:
         return f"Error: {str(e)}"
 
-# Sidebar για το API Key
-st.sidebar.title("Ρυθμίσεις")
+# Sidebar 
 api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-
 if not api_key and "OPENAI_API_KEY" in st.secrets:
     api_key = st.secrets["OPENAI_API_KEY"]
 
-st.title("🚀 AI Data Cleaner & Formatter")
-uploaded_file = st.file_uploader("Ανέβασε Excel ή CSV", type=["xlsx", "csv"])
+st.title("🚀 Ultimate AI Data Cleaner")
+uploaded_file = st.file_uploader("Ανέβασε το Stress Test αρχείο", type=["xlsx", "csv"])
 
 if uploaded_file and api_key:
     client = OpenAI(api_key=api_key)
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    else:
-        df = pd.read_excel(uploaded_file)
+    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
     
-    st.write("### Προεπισκόπηση Δεδομένων")
+    st.write("### Δεδομένα προς Επεξεργασία")
     st.dataframe(df.head())
     
-    column_to_clean = st.selectbox("Επίλεξε στήλη για καθαρισμό", df.columns)
+    column_to_clean = st.selectbox("Επίλεξε στήλη (Όνομα, Email ή Τηλέφωνο)", df.columns)
     
     if st.button("🚀 Έναρξη Καθαρισμού"):
-        with st.spinner("Το AI καθαρίζει τα δεδομένα σου... παρακαλώ περιμένετε (1 δευτ./γραμμή)"):
+        with st.spinner("Το AI επεξεργάζεται τα δεδομένα..."):
             cleaned_values = []
-            progress_bar = st.progress(0)
-            total_rows = len(df)
-            
-            for i, val in enumerate(df[column_to_clean]):
-                cleaned_val = clean_data_with_ai(val, client)
-                cleaned_values.append(cleaned_val)
-                time.sleep(1)  # Αποφυγή Rate Limit
-                progress_bar.progress((i + 1) / total_rows)
+            for val in df[column_to_clean]:
+                cleaned_values.append(clean_data_with_ai(val, client))
+                time.sleep(1) # Αποφυγή Rate Limit
             
             df[f"{column_to_clean}_Cleaned"] = cleaned_values
-            st.success("Έτοιμο!")
+            st.success("Ολοκληρώθηκε!")
             st.dataframe(df)
             
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned_data.xlsx")
-elif not api_key:
-    st.warning("Παρακαλώ εισάγετε το OpenAI API Key στα αριστερά.")
 
 
 
