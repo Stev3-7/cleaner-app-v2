@@ -51,11 +51,15 @@ if uploaded_file and api_key:
     
     column_to_clean = st.selectbox("Επίλεξε στήλη για καθαρισμό", df.columns)
     
-    if st.button("🚀 Έναρξη Καθαρισμού"):
+   if st.button("🚀 Έναρξη Καθαρισμού"):
         with st.spinner("Το AI καθαρίζει τα δεδομένα σου..."):
-            df[f"{column_to_clean}_Cleaned"] = df[column_to_clean].apply(lambda x: clean_data_with_ai(x, client))
+            cleaned_values = []
+            for val in df[column_to_clean]:
+                cleaned_val = clean_data_with_ai(val, client)
+                cleaned_values.append(cleaned_val)
+                time.sleep(1)  # Περιμένει 1 δευτερόλεπτο ανά γραμμή
+            df[f"{column_to_clean}_Cleaned"] = cleaned_values
             st.success("Έτοιμο!")
-            st.dataframe(df)
             
             # Προετοιμασία αρχείου για κατέβασμα
             output = io.BytesIO()
@@ -64,6 +68,7 @@ if uploaded_file and api_key:
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned_data.xlsx")
 elif not api_key:
     st.warning("Παρακαλώ εισάγετε το OpenAI API Key στα αριστερά.")
+
 
 
 
