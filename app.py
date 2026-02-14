@@ -6,7 +6,7 @@ import io
 def clean_data_with_ai(dirty_text, client):
     if pd.isna(dirty_text) or str(dirty_text).strip() == "":
         return dirty_text
-    prompt = f"Είσαι Data Expert. Καθάρισε, διόρθωσε ορθογραφικά και βγάλε περιττά κενά (TRIM) από την τιμή: '{dirty_text}'. Δώσε ΜΟΝΟ την καθαρή τιμή."
+    prompt = f"Είσαι ένας αυστηρός Data Cleaner. Διορθώσε την τιμή '{dirty_text}': 1. Βάλε σωστούς τόνους. 2. Κάνε το πρώτο γράμμα κεφαλαίο (Proper Case). 3. Αφαίρεσε περιττά κενά. 4. Διόρθωσε προφανή ορθογραφικά. Απάντησε ΜΟΝΟ με την καθαρή τιμή, τίποτα άλλο."
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -42,4 +42,5 @@ if uploaded_file:
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
+
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned.xlsx")
