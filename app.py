@@ -47,21 +47,23 @@ if uploaded_file and api_key:
     
     column_to_clean = st.selectbox("Επίλεξε στήλη (Όνομα, Email ή Τηλέφωνο)", df.columns)
     
-    if st.button("🚀 Έναρξη Καθαρισμού"):
-        with st.spinner("Το AI επεξεργάζεται τα δεδομένα..."):
-            cleaned_values = []
-            for val in df[column_to_clean]:
-                cleaned_values.append(clean_data_with_ai(val, client))
-                time.sleep(1) # Αποφυγή Rate Limit
-            
-            df[f"{column_to_clean}_Cleaned"] = cleaned_values
-            st.success("Ολοκληρώθηκε!")
+    if st.button("🚀 Καθαρισμός Όλων των Δεδομένων"):
+        with st.spinner("Το AI επεξεργάζεται όλες τις στήλες..."):
+            for col in ["Ονοματεπώνυμο (Dirty Data)", "Email", "Τηλέφωνο"]:
+                if col in df.columns:
+                    cleaned_values = []
+                    for val in df[col]:
+                        cleaned_values.append(clean_data_with_ai(val, client))
+                        time.sleep(1)
+                    df[f"{col}_Cleaned"] = cleaned_values
+            st.success("Όλα τα δεδομένα καθαρίστηκαν!")
             st.dataframe(df)
             
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned_data.xlsx")
+
 
 
 
