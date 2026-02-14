@@ -4,8 +4,28 @@ from openai import OpenAI
 import io
 
 def clean_data_with_ai(dirty_text, client):
-    if pd.isna(dirty_text) or str(dirty_text).strip() == "":
+    if not dirty_text or pd.isna(dirty_text):
         return dirty_text
+    
+    # Το "σκληρό" prompt για να μην σε κοροϊδεύει
+    prompt = (
+        f"Είσαι ένας αυστηρός διορθωτής δεδομένων. Διορθώσε την τιμή: '{dirty_text}'.\n"
+        f"ΕΝΤΟΛΕΣ:\n"
+        f"1. Διόρθωσε ορθογραφία (π.χ. Ιωννης -> Ιωάννης).\n"
+        f"2. Βάλε σωστούς τόνους παντού.\n"
+        f"3. Κάνε το πρώτο γράμμα κεφαλαίο και τα άλλα μικρά.\n"
+        f"4. Απάντησε ΑΠΟΚΛΕΙΣΤΙΚΑ με τη διορθωμένη λέξη."
+    )
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",  # Εδώ βάλαμε το ισχυρό μοντέλο
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0  # Το 0 σημαίνει "μην γίνεσαι δημιουργικό, κάνε μόνο τη δουλειά"
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error: {e}"
     prompt = (
         f"Είσαι ένας ειδικός στην εκκαθάριση ελληνικών δεδομένων. "
         f"Διορθώσε την παρακάτω τιμή: '{dirty_text}'.\n\n"
@@ -18,7 +38,7 @@ def clean_data_with_ai(dirty_text, client):
     )
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=50
         )
@@ -53,4 +73,5 @@ if uploaded_file:
                 df.to_excel(writer, index=False)
 
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned.xlsx")
+
 
