@@ -38,7 +38,7 @@ def clean_data_with_ai(dirty_text, client):
     )
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o mini",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=50
         )
@@ -73,5 +73,6 @@ if uploaded_file:
                 df.to_excel(writer, index=False)
 
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned.xlsx")
+
 
 
