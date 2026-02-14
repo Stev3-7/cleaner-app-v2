@@ -3,76 +3,68 @@ import pandas as pd
 from openai import OpenAI
 import io
 
+# Ρύθμιση σελίδας
+st.set_page_config(page_title="AI Data Cleaner", layout="wide")
+
 def clean_data_with_ai(dirty_text, client):
-    if not dirty_text or pd.isna(dirty_text):
+    if not dirty_text or pd.isna(dirty_text) or str(dirty_text).strip() == "":
         return dirty_text
     
-    # Το "σκληρό" prompt για να μην σε κοροϊδεύει
+    # Αυστηρό prompt για εγγυημένα αποτελέσματα στα Ελληνικά
     prompt = (
-        f"Είσαι ένας αυστηρός διορθωτής δεδομένων. Διορθώσε την τιμή: '{dirty_text}'.\n"
-        f"ΕΝΤΟΛΕΣ:\n"
-        f"1. Διόρθωσε ορθογραφία (π.χ. Ιωννης -> Ιωάννης).\n"
+        f"Είσαι ένας έμπειρος διορθωτής δεδομένων. Διορθώσε την τιμή: '{dirty_text}'.\n"
+        f"ΚΑΝΟΝΕΣ:\n"
+        f"1. Διόρθωσε ορθογραφικά (π.χ. Ιωννης -> Ιωάννης).\n"
         f"2. Βάλε σωστούς τόνους παντού.\n"
-        f"3. Κάνε το πρώτο γράμμα κεφαλαίο και τα άλλα μικρά.\n"
-        f"4. Απάντησε ΑΠΟΚΛΕΙΣΤΙΚΑ με τη διορθωμένη λέξη."
+        f"3. Κάνε Proper Case (π.χ. ΠΑΠΑΔΟΠΟΥΛΟΣ -> Παπαδόπουλος).\n"
+        f"4. Αφαίρεσε περιττά κενά.\n"
+        f"Απάντησε ΜΟΝΟ με τη διορθωμένη τιμή."
     )
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",  # Εδώ βάλαμε το ισχυρό μοντέλο
+            model="gpt-4o",  # Χρήση του ισχυρού μοντέλου
             messages=[{"role": "user", "content": prompt}],
-            temperature=0  # Το 0 σημαίνει "μην γίνεσαι δημιουργικό, κάνε μόνο τη δουλειά"
+            temperature=0
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"Error: {e}"
-    prompt = (
-        f"Είσαι ένας ειδικός στην εκκαθάριση ελληνικών δεδομένων. "
-        f"Διορθώσε την παρακάτω τιμή: '{dirty_text}'.\n\n"
-        f"ΚΑΝΟΝΕΣ:\n"
-        f"1. Διόρθωσε ορθογραφικά λάθη (π.χ. Ιωννης -> Ιωάννης).\n"
-        f"2. Βάλε τόνους παντού σωστά.\n"
-        f"3. Κάνε το πρώτο γράμμα κάθε λέξης κεφαλαίο και τα υπόλοιπα μικρά.\n"
-        f"4. Αφαίρεσε περιττά κενά στην αρχή και στο τέλος.\n\n"
-        f"Απάντησε ΜΟΝΟ με τη διορθωμένη τιμή, χωρίς κανένα άλλο σχόλιο."
-    )
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=50
-        )
-        return response.choices[0].message.content.strip()
-    except:
-        return dirty_text
+        return f"Error: {str(e)}"
 
-st.set_page_config(page_title="AI Data Cleaner", layout="wide")
-st.title("🧼 AI Data Cleaner & Formatter")
-
+# Sidebar για το API Key
+st.sidebar.title("Ρυθμίσεις")
 api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-uploaded_file = st.file_uploader("Ανέβασε Excel ή CSV", type=["xlsx", "csv"])
 
-if uploaded_file:
-    df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('xlsx') else pd.read_csv(uploaded_file)
-    st.write("### Προεπισκόπηση", df.head())
+# Αν δεν υπάρχει κλειδί στο πλαίσιο, έλεγχος στα Secrets
+if not api_key and "OPENAI_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENAI_API_KEY"]
+
+st.title("🚀 AI Data Cleaner & Formatter")
+uploaded_file = st.file_誠_upload("Ανέβασε Excel ή CSV", type=["xlsx", "csv"])
+
+if uploaded_file and api_key:
+    client = OpenAI(api_key=api_key)
+    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
     
-    col_to_clean = st.selectbox("Επίλεξε στήλη για καθάρισμα:", df.columns)
+    st.write("### Προεπισκόπηση Δεδομένων")
+    st.dataframe(df.head())
+    
+    column_to_clean = st.selectbox("Επίλεξε στήλη για καθαρισμό", df.columns)
     
     if st.button("🚀 Έναρξη Καθαρισμού"):
-        if not api_key:
-            st.error("Βάλε το API Key σου αριστερά!")
-        else:
-            client = OpenAI(api_key=api_key)
-            with st.spinner('Καθαρίζεται...'):
-                df[f'{col_to_clean}_Cleaned'] = df[col_to_clean].apply(lambda x: clean_data_with_ai(x, client))
+        with st.spinner("Το AI καθαρίζει τα δεδομένα σου..."):
+            df[f"{column_to_clean}_Cleaned"] = df[column_to_clean].apply(lambda x: clean_data_with_ai(x, client))
             st.success("Έτοιμο!")
-            st.write(df.head())
+            st.dataframe(df)
             
+            # Προετοιμασία αρχείου για κατέβασμα
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
+            st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned_data.xlsx")
+elif not api_key:
+    st.warning("Παρακαλώ εισάγετε το OpenAI API Key στα αριστερά.")
 
-            st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned.xlsx")
 
 
 
