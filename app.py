@@ -40,7 +40,7 @@ if not api_key and "OPENAI_API_KEY" in st.secrets:
     api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("🚀 AI Data Cleaner & Formatter")
-uploaded_file = st.file_誠_upload("Ανέβασε Excel ή CSV", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Ανέβασε Excel ή CSV", type=["xlsx", "csv"])
 
 if uploaded_file and api_key:
     client = OpenAI(api_key=api_key)
@@ -64,6 +64,7 @@ if uploaded_file and api_key:
             st.download_button("📥 Κατέβασμα", data=output.getvalue(), file_name="cleaned_data.xlsx")
 elif not api_key:
     st.warning("Παρακαλώ εισάγετε το OpenAI API Key στα αριστερά.")
+
 
 
 
